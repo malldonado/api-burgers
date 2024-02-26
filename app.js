@@ -40,11 +40,10 @@ const burguers = require("./controllers/burguers");
 const auth = require("./controllers/auth");
 
 app.use("/", users, authentication);
-app.use("/", burguers, authentication);
 app.use("/", auth, authentication);
 
 //test database connection
-const db = require("./db/models");
+// const db = require("./db/models");
 
 app.listen(8080, () => {
   console.log("Serviço rodando na porta 8080!");
