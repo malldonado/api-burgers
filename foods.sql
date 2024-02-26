@@ -1,3 +1,6 @@
+-- execute first
+CREATE DATABASE foods CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- MySQL dump 10.13  Distrib 8.0.33, for Win64 (x86_64)
 --
 -- Host: localhost    Database: foods
@@ -19,6 +22,7 @@
 -- Table structure for table `sequelizemeta`
 --
 
+--execute after
 DROP TABLE IF EXISTS `sequelizemeta`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

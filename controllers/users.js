@@ -89,10 +89,6 @@ router.post("/users", async (req, res) => {
         message: e,
       });
     });
-
-  return res.json({
-    message: "Usuário cadastrado com sucesso!"
-  });
 });
 
 //create of route for view and receive the params id sent in URL
