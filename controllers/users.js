@@ -73,6 +73,7 @@ router.get("/users", async (req, res) => {
 
 router.post("/users", async (req, res) => {
   //receive data sent in body of request
+
   var data = req.body;
   // console.log(data);
 
