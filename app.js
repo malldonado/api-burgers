@@ -1,50 +1,25 @@
-const express = require("express");
+//imports
+const express = require('express');
+const cors = require('cors');
+const { readdirSync } = require('fs');
+const dotenv = require('dotenv');
+const bodyParser = require('body-parser');
 const app = express();
-var bodyParser = require('body-parser');
-var cors = require("cors");
+dotenv.config();
 
-//create middleware receive of data in body of request
-app.use(express.json()); //receive data at json
-app.use(bodyParser.urlencoded({ extended: false }))
-// parse application/json
-app.use(bodyParser.json())
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000"); //allow access from the frontend
-  app.use(cors());
-  next();
-});
-function authentication(req, res, next) {
-  const authToken = req.headers["authorization"];
-  if(authToken != undefined) {
-    const bearer = authToken.split(' ');
-    var token = beader.pop();
-    jwt.verify(token, '-%Mh!XD@Q!jiN#0s1W%#tA1Z', (err, data) => {
-      if(err) {
-        res.status(401);
-        res.json({err: 'Token invalid'});
-      } else {
-        req.toke = token;
-        req.loggedUser = {id: data.id, email: data.email};
-        next();
-      }
-    });
-  } else {
-    res.status(401);
-    res.json({ err: 'Token invalid'});
-  }
-}
+// Middleware to receive data in the request body
+app.use(cors());
+app.use(express.json()); // receive JSON data
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-//include the controllers
-const users = require("./controllers/users");
-const burguers = require("./controllers/burguers");
-const auth = require("./controllers/auth");
+//routes
+readdirSync('./routes/').map((r) => app.use('/', require('./routes/' + r)));
 
-app.use("/", users, authentication);
-app.use("/", auth, authentication);
+// Middleware to allow access from the frontend
+app.use(cors({ origin: "http://localhost:3000" }));
 
-//test database connection
-// const db = require("./db/models");
-
-app.listen(8080, () => {
-  console.log("Serviço rodando na porta 8080!");
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, ()=> {
+    console.log('Server is running on port 8000');
 });

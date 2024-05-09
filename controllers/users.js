@@ -1,176 +1,151 @@
-const express = require("express");
-const router = express.Router();
 const db = require("../db/models/index");
+const NotFoundError = require('./errors/NotFoundError');
+const CreationError = require('./errors/CreationError');
+const UpdateError = require('./errors/UpdateError');
+const DeleteError = require('./errors/DeleteError');
 
-router.get("/users", async (req, res) => {
-
-  //receive the number of page, when isn't sent the number of page is attribute page one
+exports.getUsers = async (req, res) => {
   const { page = 1 } = req.query;
-
-  //console.log(page);
-
-  //limit of registers at each page
   const limit = 10;
+  let lastPage = 1;
 
-  //variable with the number at last page
-  var lastPage = 1;
-
-  //count the quantity of registers in database
   const countUser = await db.Users.count();
-  // console.log(countUser);
+  if (!countUser) {
+    throw new NotFoundError('Users not found.');
+  }
 
-  //access the if when find registers in database
   if (countUser !== 0) {
-    //calc the last page
     lastPage = Math.ceil(countUser / limit);
   } else {
     return res.status(400).json({
-      message: "Erro: Nenhum usuário encontrado!"
+      message: "Error: No users found!"
     });
   }
 
-  const users = await db.Users.findAll({
-
-    //show the column recover
-    attributes: ['id', 'name', 'email'],
-    //order the registers for column id in mode descending
-    order: [
-      ["id", "ASC"],
-    ],
-    //Calc from registers for column id in form descending
-    offset: Number((page * limit) - limit),
-    limit: limit
-
-  });
-
-  if (users) {
-    //create object with of informations for pagination
-    var pagination = {
-      //crumb
-      path: '/users',
-      //page actual
-      page,
-      //URL of page previous
-      prev_page_url: (page) - 1 >= 1 ? page - 1 : false,
-      //URL of next page
-      next_page_url: Number(page) + Number(1) > lastPage ? lastPage : Number(page) + Number(1),
-      //last page
-      lastPage,
-      //quantity of registers
-      total: countUser,
-    }
-
-    res.json({
-      users: users,
-      pagination: pagination
+  try {
+    const users = await db.Users.findAll({
+      attributes: ['id', 'name', 'email'],
+      order: [["id", "ASC"]],
+      offset: Number((page * limit) - limit),
+      limit: limit
     });
-  } else {
-    return res.status(400).json({
-      message: "Erro: Usuarios não foram encontrados!",
-    });
-  }
-});
 
-router.post("/users", async (req, res) => {
-  //receive data sent in body of request
-
-  var data = req.body;
-  // console.log(data);
-
-  //save in data
-  await db.Users.create(data)
-    .then((dataUser) => {
-      return res.json({
-        message: "Usuário cadastrado com sucesso!",
-        dataUser: dataUser,
-      });
-    })
-    .catch((e) => {
-      return res.json({
-        message: e,
-      });
-    });
-});
-
-//create of route for view and receive the params id sent in URL
-router.get('/users:id', async (req, res) => {
-
-  const { id } = req.params;
-
-  //receive the register of database
-  if(!isNaN()) {
-    const user = await db.Users.findOne({
-  
-      //select column for recover
-      attribute: ['id', 'name', 'email', 'createdAt', 'updatedAt'],
-      //indicate register it must be return in database
-      where: {
-        id: id
+    if (users) {
+      const pagination = {
+        path: '/users',
+        page,
+        prev_page_url: (page) - 1 >= 1 ? page - 1 : false,
+        next_page_url: Number(page) + Number(1) > lastPage ? lastPage : Number(page) + Number(1),
+        lastPage,
+        total: countUser,
       }
-    });
-  } else{
-    res.json({
-      message: 'ID não é válido'
-    });
-  }
 
-  //access the IF case find the register in database
-  if (user) {
-    return res.json({
-      user: user
-    })
-  } else {
-    return res.status(400).json({
-      message: "Erro: nenhum usuário encontrado!"
-    });
-  }
-
-});
-
-//route delete
-router.delete('/users:id', async (req, res) => {
-  const { id } = req.params;
-
-  if(!isNaN()) {
-    await db.Users.destroy({
-      where: {
-        id: id
-      }
-    }).then(() => {
       res.json({
-        message: 'Usuário apagado com sucesso!'
+        users: users,
+        pagination: pagination
       });
-    }).catch(() => {
-      res.status(400).json({
-        message: 'Erro: usuário não foi deletado!'
+    } else {
+      return res.status(400).json({
+        message: "Error: Users not found!",
       });
-    });
-  } else{
-    res.json({
-      message: 'ID não é válido'
-    });
-  }
-
-});
-
-//route edit
-router.put('/users', async (req, res) => {
-
-  const dados = req.body;
-
-  await db.Users.update({
-    where: {
-      id: dados.id
     }
-  }).then(() => {
-    return res.json({
-      message: 'Usuário cadastrado com sucesso!'
-    });
-  }).catch(() => {
-    return res.status(400).json({
-      message: 'Erro: Usuário não foi editado com sucesso!'
-    });
-  });
-});
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Error fetching users." });
+  }
+}
 
-module.exports = router;
+exports.postUsers = async (req, res) => {
+  try {
+    const data = req.body;
+    const dataUser = await db.Users.create(data);
+    if (!dataUser) {
+      throw new CreationError('Invalid data.');
+    }
+    res.json({
+      message: "User registered successfully!",
+      dataUser: dataUser,
+    });
+  } catch (error) {
+    console.error("Error adding user:", error);
+    res.status(500).json({ message: error.message });
+  }
+}
+
+
+exports.getUsersId = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    throw new NotFoundError('User not found.');
+  }
+  try {
+    const user = await db.Users.findOne({
+      attributes: ['id', 'name', 'email', 'createdAt', 'updatedAt'],
+      where: {
+        id: id
+      }
+    });
+
+    if (user) {
+      return res.json({
+        user: user
+      })
+    } else {
+      return res.status(400).json({
+        message: "Error: no user found!"
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Error fetching user." });
+  }
+}
+
+exports.deleteUsersId = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    throw new DeleteError('User ID not provided.');
+  }
+  try {
+    const deletedCount = await db.Users.destroy({
+      where: {
+        id: id
+      }
+    });
+
+    if (deletedCount !== 0) {
+      res.json({
+        message: 'User deleted successfully!'
+      });
+    } else {
+      return res.status(400).json({
+        message: "Error: user not deleted!"
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ message: "Error deleting user." });
+  }
+}
+
+exports.putUsersId = async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data) {
+      throw new UpdateError('User ID not provided.');
+    }
+    await db.Users.update(data, {
+      where: {
+        id: data.id
+      }
+    });
+
+    return res.json({
+      message: 'User updated successfully!'
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Error updating user." });
+  }
+}
+
